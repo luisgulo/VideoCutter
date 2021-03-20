@@ -1,0 +1,195 @@
+' Gambas class file
+
+Public Objeto As Object
+Public Volumen As Object
+Public FichTrozo As String
+Public hProceso As Process
+Public ficheroLINK As String
+
+
+'' ffmpeg -ss 00:03:05 -i VideoOrigen -to 00:09:43 -c copy TrozoVideo
+
+Public Sub Form_Open()
+  System.Shell = "/bin/bash"  
+  Me.Text = "VideoCutter - versión " & Application.Version
+  labelAyuda.text = " AYUDA RÁPIDA" & gb.CrLf & gb.CrLf
+  labelAyuda.Text &= "1) Seleccione el video y pulse 'Cargar Vídeo'" & gb.CrLf 
+  labelAyuda.Text &= "2) Reproduzca el vídeo y pulse en 'Desde/Hasta'" & gb.CrLf 
+  labelAyuda.Text &= "     también puede escribir directamente los tiempos (h:mm:ss)" & gb.CrLf
+  labelAyuda.Text &= "3) Pulse 'Extraer Vídeo'"
+  
+  EscogeVideo.Filter = ["*.avi;*.divx;*.mpg;*.mp4;*.mov;*.flv;*.webm;*.mkv;*.mpeg", "Vídeos permitidos"]
+  Volumen20(Video)
+End
+
+Public Function Volumen20(ElementoMultiMedia As MediaView)
+  'Volumen Fijo al 20%
+  ' Evitamos error de que no se puede asignar en inicio el valor del volumen
+  'Dim Objeto, Volumen As Object
+  Objeto = ElementoMultiMedia.Children[0]
+  Objeto = Objeto.Children[0]
+  Volumen = Objeto.Children[3]
+  Volumen.Children[5].Value = 15  
+End
+
+Public Sub botonEscoger_Click()
+  If Not IsNull(EscogeVideo.SelectedPath)
+    Video.URL = EscogeVideo.SelectedPath
+    'Precargar (play-stop) y situar al principio
+    Video.Play
+    Video.Stop
+    'Video.Position = 0
+    txtDuracionVideo.Text = Video.Duration
+  Else
+    Message.Title = "VideoCutter"
+    Message.Warning("Debe de seleccionar un Vídeo")
+  Endif
+End
+
+Public Sub botonDesde_Click()
+  If IsNull(video.URL)
+    Message("Seleccione un video y pulse 'Cargar Vídeo'")
+  Else
+  txtDesde.Text = Video.Position
+  Endif
+End
+
+Public Sub botonDesde2_Click()
+  If IsNull(video.URL)
+   Message("Seleccione un video y pulse 'Cargar Vídeo'")
+  Else
+  txtHasta.Text = Video.Position
+  Endif
+End
+
+Public Function NombreFichTrozo()
+  ' Directorios con espacios o nombres con espacio no se procesan correctamente
+  ' Parche mediante LINK
+  'Shell "echo -ne $(tempfile -d /tmp)" To ficheroLINK
+  'Shell "rm " & ficheroLINK & "; ln -sf " & Shell$(EscogeVideo.SelectedPath) & " " & ficheroLINK Wait
+  
+  
+  FichTrozo = ""
+  Dim Ruta As String
+  Dim Nombre As String
+  
+  Dim trozo As String[]
+  'Separarmos por la barra /
+  trozo = Split(EscogeVideo.SelectedPath, "/")
+  Dim i As Integer
+  For i = 0 To trozo.Max - 1
+    Ruta &= trozo[i] & "/"
+  Next
+  Ruta = Mid(Ruta, 1, -1)
+  Nombre = trozo[trozo.Max]  
+  Shell "echo -ne $(tempfile -d " & Shell$(Ruta) & " -s _" & Shell$(Nombre) & ")" To FichTrozo  
+End
+
+
+Public Sub botonCortar_Click()
+  
+  If txtDesde.Text = txtHasta.Text
+    Message.Title = "VideoCutter"
+    Message.Warning("Los rangos de intervalo de corte no pueden ser iguales")
+  Else
+    'Generamos nombre pseudo-aleatorio
+    NombreFichTrozo()
+    GIRA.Visible = True    
+    'txtGira.Visible = True
+    botonCortar.Text = "    PROCESANDO..."
+    botonCortar.Enabled = False
+    Wait 0.1
+    ' ' Error mencoder con -ss y -endpos
+    ' ' hay que situarse con -sb y calcular cuanto tiempo se quiere del video a cortar
+     Dim TiempoFIN As String
+     If InStr(txtDesde.Text, ":") > 0 Or InStr(txtHasta.Text, ":") > 0
+        'Cadena contiene ':'
+        Dim trozo1 As String[]
+        Dim trozo2 As String[]
+        Dim acumular As Integer
+        acumular = 0
+        trozo1 = Split(txtDesde.Text, ":")
+        trozo2 = Split(txtHasta.Text, ":")
+        If trozo1.Count < 3 Or trozo2.Count < 3
+          message.Error("Use formato H:MM:SS" & gb.CrLf & "utilice ceros en caso necesario. ejemplo: 0:10:25")
+          GIRA.Visible = False
+          Return
+        Endif
+        ' tiempoFIN en a hh:mm:ss
+        ' Segundos (si es negativo sumo 60 y debo 1 minuto)
+        trozo1[0] = Right("00" & trozo1[0], 2)        
+        trozo2[0] = Right("00" & trozo2[0], 2)
+        trozo1[1] = Right("00" & trozo1[1], 2)
+        trozo2[1] = Right("00" & trozo2[1], 2)
+        trozo1[2] = Right("00" & trozo1[2], 2)
+        trozo2[2] = Right("00" & trozo2[2], 2)
+        If (CInt(trozo2[2]) - CInt(trozo1[2])) < 0
+           TiempoFIN = ":" & Right("00" & ((CInt(trozo2[2]) - CInt(trozo1[2])) + 60), 2)
+           acumular = 1
+        Else
+          TiempoFIN = ":" & Right("00" & (CInt(trozo2[2]) - CInt(trozo1[2])), 2)
+          acumular = 0
+        Endif
+        ' Minutos
+        If (CInt(trozo2[1]) - CInt(trozo1[1])) - acumular < 0
+          TiempoFIN = ":" & Right("00" & ((CInt(trozo2[1]) - CInt(trozo1[1])) + (60 - acumular)), 2) & TiempoFIN
+          acumular = 1
+        Else          
+          TiempoFIN = ":" & Right("00" & ((CInt(trozo2[1]) - CInt(trozo1[1])) - acumular), 2) & TiempoFIN
+          acumular = 0
+        Endif
+        
+        If ((CInt(trozo2[0]) - CInt(trozo1[0])) - acumular) < 0
+          Message("Error en tiempo de recorte indicado: " & TiempoFIN)
+          Return
+        Else
+          TiempoFIN = Right("00" & ((CInt(trozo2[0]) - CInt(trozo1[0])) + acumular), 2) & TiempoFIN
+        Endif      
+        'TiempoFIN = (CInt(trozo2[0]) - CInt(trozo1[0])) & ":" & (CInt(trozo2[1]) - CInt(trozo1[1])) & ":" & (CInt(trozo2[2]) - CInt(trozo1[2]))
+        Message("Voy a recortar un tiempo de: " & TiempoFIN)
+     Else
+       ' Cadena esta como numero
+       Dim TiempoLong As Long
+       TiempoLong = txtHasta.Text - txtDesde.Text
+       TiempoFIN = CStr(TiempoLong)
+       Message("Situarse -sb: " & txtDesde.Text & " y parar tras: " & TiempoFIN)
+       Wait 0.1
+     Endif
+   'Troceamos
+    'hProceso = Shell "ffmpeg -ss " & txtDesde.Text & " -i " & Video.URL & " -to " & txtHasta.Text & " -c copy " & FichTrozo      
+    'Exec ["ffmpeg", "-y", "-i", EscogeVideo.SelectedPath, "-ss", txtDesde.Text, "-to", txtHasta.Text, "-c", "copy", FichTrozo] Wait
+    'Exec ["mencoder", "-ss", txtDesde.Text, "-endpos", txtHasta.Text, EscogeVideo.SelectedPath, "-ovc", "copy", "-oac", "pcm", "-o", FichTrozo] Wait
+    Exec ["mencoder", "-ss", txtDesde.Text, "-endpos", TiempoFIN, EscogeVideo.SelectedPath, "-ovc", "copy", "-oac", "pcm", "-o", FichTrozo] Wait
+        ' Do While hProceso.State = Process.Running
+    '   Select Case txtGira.Text
+    '     Case "|"
+    '       txtGira.Text = "/"
+    '     Case "/"
+    '       txtGira.Text = "-"
+    '     Case "-"
+    '       txtGira.Text = "\\"
+    '     Case "\\"
+    '       txtGira.Text = "|"
+    '     Case Else
+    '       txtGira.Text = "|"
+    '   End Select
+    '   Wait 0.1        
+    ' Loop
+    botonCortar.Text = "    Extraer Vídeo"
+    botonCortar.Enabled = True
+    GIRA.Visible = False
+    'txtGira.Visible = False
+    Video.Position = 0
+    Video.Play
+    Video.Stop
+    txtDesde.Text = "00:00:00"
+    txtHasta.Text = "00:00:00"
+    'Message.Title = "VideoCutter"
+    'Message.Info("Extracción finalizada, su fichero se llama:" & gb.CrLf & FichTrozo)    
+    Video.URL = FichTrozo
+    Video.Play
+    Video.Stop
+    Message.Title = "VideoCutter"
+    Message.Info("Puede previsualizar el vídeo cortado" & gb.CrLf & FichTrozo)    
+  Endif
+End

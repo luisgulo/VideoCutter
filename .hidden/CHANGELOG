@@ -1,0 +1,18 @@
+* Sun Apr 19 2020 luisgulo <luisgulo@soloconlinux.org> 1.0.20
+- Corrección tiempos H:MM:SS si usuario no lo escribe correctamente.
+- Se permite uso formato h:mm:ss o formato seg.miliseg
+
+* Sun Apr 19 2020 luisgulo <luisgulo@soloconlinux.org> 1.0.18
+- Corregido error tiempo finalización -endpos de mencoder
+
+* Sat Apr 18 2020 luisgulo <luisgulo@soloconlinux.org> 1.0.15
+- Se permite incluir h:mm:ss en intervalos de corte.
+- Se incluye ayuda rapida.
+- Se aumenta tamaño de pantalla
+
+* Thu Apr 16 2020 luisgulo <luisgulo@soloconlinux.org> 1.0.11
+- Se cambia proceso de ffmpeg a mencoder
+
+* Mon Apr 13 2020 luisgulo <luisgulo@soloconlinux.org> 1.0.4
+- Lanzamiento inicial
+

@@ -1,0 +1,64 @@
+# Gambas Form File 3.0
+
+{ Form Form
+  MoveScaled(0,0,139,85)
+  Text = ("VideoCutter - versión x.y.z")
+  Icon = Picture["VideoCutter-icono.png"]
+  Resizable = False
+  { Video MediaView
+    MoveScaled(71,1,67,67)
+  }
+  { EscogeVideo FileChooser
+    MoveScaled(1,1,68,66)
+  }
+  { botonEscoger Button
+    MoveScaled(80,70,33,5)
+    Text = ("          Cargar  Vídeo")
+    Picture = Picture["icon:/32/video"]
+  }
+  { Panel1 Panel
+    MoveScaled(80,76,58,7)
+    { txtDuracionVideo TextBox
+      MoveScaled(13,10,10,4)
+      Visible = False
+      Font = Font["Bold"]
+      Text = ("0:00:00")
+      Alignment = Align.Center
+      ReadOnly = True
+    }
+    { botonDesde2 Button
+      MoveScaled(0,4,12,3)
+      Text = ("Hasta     >|")
+    }
+    { txtHasta TextBox
+      MoveScaled(13,4,20,3)
+      Text = ("00:00:00")
+      Alignment = Align.Right
+    }
+    { txtDesde TextBox
+      MoveScaled(12.75,0,20,3)
+      Text = ("00:00:00")
+      Alignment = Align.Right
+    }
+    { botonCortar Button
+      MoveScaled(34,0,24,7)
+      Text = ("    Extraer Vídeo")
+      Picture = Picture["VideoCutter_32x32.png"]
+    }
+    { botonDesde Button
+      MoveScaled(0,0,12,3)
+      Text = ("Desde     >|")
+    }
+  }
+  { labelAyuda Label
+    MoveScaled(1,68,68,16)
+    Text = ("Utilice hh:mm:ss ")
+    Alignment = Align.TopLeft
+    Border = Border.Raised
+  }
+  { GIRA Spinner
+    MoveScaled(71,75,8,8)
+    Visible = False
+    Foreground = Color.Blue
+  }
+}
